@@ -8,5 +8,6 @@ terraform {
 }
 
 provider "kubernetes" {
-  config_path = pathexpand("~/.kube/config")
+  config_path = "${path.root}/.kubeconfig"
 }
+
