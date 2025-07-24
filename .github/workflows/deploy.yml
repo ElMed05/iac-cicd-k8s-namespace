@@ -34,6 +34,12 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
+          
+      - name: Debug Kubeconfig
+        run: |
+          echo "Kubeconfig content:"
+          cat terraform/.kubeconfig | head -n 20
+
 
       - name: Terraform Init
         working-directory: terraform
