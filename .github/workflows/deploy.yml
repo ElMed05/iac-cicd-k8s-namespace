@@ -1,0 +1,57 @@
+name: Deploy Kubernetes Namespace via Terraform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Zielumgebung (staging oder production)'
+        required: true
+        default: 'staging'
+
+jobs:
+  terraform:
+    name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
+    runs-on: ubuntu-latest
+
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    env:
+      KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.2
+
+      - name: Write Kubeconfig from Secret
+        run: |
+          echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: terraform
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -var-file="environments/${{ github.event.inputs.environment || 'staging' }}.tfvars"
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        working-directory: terraform
+        run: terraform apply -auto-approve -var-file="environments/${{ github.event.inputs.environment || 'staging' }}.tfvars"
