@@ -18,7 +18,8 @@ jobs:
 
     environment: ${{ github.event.inputs.environment || 'staging' }}
 
-    
+    env:
+      KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
 
     steps:
       - name: Checkout Repository
