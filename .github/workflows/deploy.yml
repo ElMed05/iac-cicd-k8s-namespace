@@ -32,6 +32,7 @@ jobs:
 
       - name: Write Kubeconfig from Secret
         run: |
+          mkdir -p ~/.kube
           echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
@@ -55,4 +56,3 @@ jobs:
         if: github.ref == 'refs/heads/main'
         working-directory: terraform
         run: terraform apply -auto-approve -var-file="environments/${{ github.event.inputs.environment || 'staging' }}.tfvars"
-#
