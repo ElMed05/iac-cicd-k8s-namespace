@@ -14,7 +14,7 @@ on:
 jobs:
   terraform:
     name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
-    runs-on: self-hosted  # Dein eigener Runner muss laufen!
+    runs-on: self-hosted
 
     environment: ${{ github.event.inputs.environment || 'staging' }}
 
@@ -44,23 +44,24 @@ jobs:
       - name: 🐞 Debug Kubeconfig (optional)
         run: head -n 20 terraform/.kubeconfig
 
-      - name: 📂 Create tfvars file for selected environment
-        working-directory: terraform/environments
+      - name: 📂 Generate tfvars file dynamically
+        working-directory: terraform
         run: |
+          mkdir -p environments
           ENV="${{ github.event.inputs.environment || 'staging' }}"
           if [ "$ENV" = "staging" ]; then
-            cat <<EOF > $ENV.tfvars
-            namespace   = "team-cong"
-            environment = "staging"
-            EOF
-          elif [ "$ENV" = "production" ]; then
-            cat <<EOF > $ENV.tfvars
-            namespace   = "team-cong"
-            environment = "production"
-            EOF
-          else
-            echo "Unsupported environment: $ENV"
-            exit 1
+            cat <<EOF > environments/$ENV.tfvars
+              namespace   = "team-cong"
+              environment = "staging"
+              EOF
+                        elif [ "$ENV" = "production" ]; then
+                          cat <<EOF > environments/$ENV.tfvars
+              namespace   = "team-cong"
+              environment = "production"
+              EOF
+                        else
+                          echo "Unsupported environment: $ENV"
+                          exit 1
           fi
 
       - name: 🚀 Terraform Init
