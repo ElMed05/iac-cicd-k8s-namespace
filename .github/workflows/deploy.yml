@@ -58,19 +58,19 @@ jobs:
           ~/.local/bin/checkov -d terraform/
 
   lint:
-   name: 🧹 TFLint Check
-   runs-on: self-hosted
-   needs: setup
-   steps:
-    - uses: actions/checkout@v4
-    - name: 📥 TFLint installieren
-      run: |
-        curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-    - name: 🔍 Lint Terraform Code
-      working-directory: terraform
-      run: |
-        tflint --init
-        tflint
+    name: 🧹 TFLint Check
+    runs-on: self-hosted
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: 📥 TFLint installieren
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+      - name: 🔍 Lint Terraform Code
+        working-directory: terraform
+        run: |
+          tflint --init
+          tflint
 
   validate:
     name: ✅ Terraform Validate
@@ -79,17 +79,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 📄 Schreibe tfvars dynamisch
+      - name: 📄 tfvars dynamisch generieren
         run: |
-          mkdir -p environments
-          ENV="staging"
+          mkdir -p terraform/environments
+          ENV="${{ needs.setup.outputs.environment }}"
           if [ "$ENV" = "staging" ]; then
-          cat <<EOF > environments/$ENV.tfvars
+          cat <<EOF > terraform/environments/$ENV.tfvars
           namespace   = "team-cong"
           environment = "staging"
           EOF
           elif [ "$ENV" = "production" ]; then
-          cat <<EOF > environments/$ENV.tfvars
+          cat <<EOF > terraform/environments/$ENV.tfvars
           namespace   = "team-cong"
           environment = "production"
           EOF
@@ -97,7 +97,6 @@ jobs:
             echo "Unsupported environment: $ENV"
             exit 1
           fi
-
 
       - name: 🌍 Terraform Init
         working-directory: terraform
@@ -117,7 +116,27 @@ jobs:
     needs: [setup, validate]
     steps:
       - uses: actions/checkout@v4
-      - name: 📐 Plan ausführen
+
+      - name: 📄 tfvars dynamisch generieren (erneut)
+        run: |
+          mkdir -p terraform/environments
+          ENV="${{ needs.setup.outputs.environment }}"
+          if [ "$ENV" = "staging" ]; then
+          cat <<EOF > terraform/environments/$ENV.tfvars
+          namespace   = "team-cong"
+          environment = "staging"
+          EOF
+          elif [ "$ENV" = "production" ]; then
+          cat <<EOF > terraform/environments/$ENV.tfvars
+          namespace   = "team-cong"
+          environment = "production"
+          EOF
+          else
+            echo "Unsupported environment: $ENV"
+            exit 1
+          fi
+
+      - name: 📐 Terraform Plan ausführen
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
@@ -130,9 +149,20 @@ jobs:
     runs-on: self-hosted
     needs: plan
     if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
     steps:
       - uses: actions/checkout@v4
-      - name: 🚀 Apply ausführen (nur auf main)
+
+      - name: 📄 tfvars für Apply generieren
+        run: |
+          mkdir -p terraform/environments
+          cat <<EOF > terraform/environments/production.tfvars
+          namespace   = "team-cong"
+          environment = "production"
+          EOF
+
+      - name: 🚀 Apply ausführen
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
