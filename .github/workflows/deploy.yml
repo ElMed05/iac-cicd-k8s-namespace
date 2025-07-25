@@ -2,9 +2,7 @@ name: Deploy Kubernetes Namespace via Terraform
 
 on:
   push:
-    branches:
-      - main
-      - staging
+    branches: [main, staging]
   workflow_dispatch:
     inputs:
       environment:
@@ -26,12 +24,12 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🔧 Tools installieren (curl, unzip, jq, pip)
+      - name: 🔧 Tools installieren
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip curl jq python3 python3-pip
 
-      - name: 🔐 Schreibe Kubeconfig aus Secret
+      - name: 🔐 Kubeconfig aus Secret schreiben
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
@@ -48,25 +46,26 @@ jobs:
           fi
 
   checkov:
-    name: 🔐 Security Check mit Checkov
+    name: 🔐 Checkov Scan
     runs-on: self-hosted
     needs: setup
     steps:
       - uses: actions/checkout@v4
-      - run: |
+      - name: Run Checkov
+        run: |
           pip install --user checkov
           ~/.local/bin/checkov -d terraform/
 
   lint:
-    name: 🧹 TFLint Check
+    name: 🧹 TFLint
     runs-on: self-hosted
     needs: setup
     steps:
       - uses: actions/checkout@v4
-      - name: 📥 TFLint installieren
+      - name: Install TFLint
         run: |
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-      - name: 🔍 Lint Terraform Code
+      - name: Run TFLint
         working-directory: terraform
         run: |
           tflint --init
@@ -79,30 +78,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 📄 tfvars dynamisch generieren
-        run: |
-          mkdir -p terraform/environments
-          ENV="${{ needs.setup.outputs.environment }}"
-          if [ "$ENV" = "staging" ]; then
-          cat <<EOF > terraform/environments/$ENV.tfvars
-          namespace   = "team-cong"
-          environment = "staging"
-          EOF
-          elif [ "$ENV" = "production" ]; then
-          cat <<EOF > terraform/environments/$ENV.tfvars
-          namespace   = "team-cong"
-          environment = "production"
-          EOF
-          else
-            echo "Unsupported environment: $ENV"
-            exit 1
-          fi
-
       - name: 🌍 Terraform Init
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: terraform init
+        run: terraform init -upgrade
 
       - name: ✅ Terraform Validate
         working-directory: terraform
@@ -117,32 +97,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 📄 tfvars dynamisch generieren (erneut)
+      - name: 📄 tfvars generieren
         run: |
           mkdir -p terraform/environments
           ENV="${{ needs.setup.outputs.environment }}"
-          if [ "$ENV" = "staging" ]; then
           cat <<EOF > terraform/environments/$ENV.tfvars
           namespace   = "team-cong"
-          environment = "staging"
+          environment = "$ENV"
           EOF
-          elif [ "$ENV" = "production" ]; then
-          cat <<EOF > terraform/environments/$ENV.tfvars
-          namespace   = "team-cong"
-          environment = "production"
-          EOF
-          else
-            echo "Unsupported environment: $ENV"
-            exit 1
-          fi
+
+      - name: 🌍 Terraform Init
+        working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+        run: terraform init -upgrade
 
       - name: 📐 Terraform Plan ausführen
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: |
-          terraform plan \
-            -var-file=environments/${{ needs.setup.outputs.environment }}.tfvars
+        run: terraform plan -var-file=environments/${{ needs.setup.outputs.environment }}.tfvars
 
   apply:
     name: 🚀 Terraform Apply
@@ -154,7 +128,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 📄 tfvars für Apply generieren
+      - name: 📄 tfvars für production generieren
         run: |
           mkdir -p terraform/environments
           cat <<EOF > terraform/environments/production.tfvars
@@ -162,10 +136,14 @@ jobs:
           environment = "production"
           EOF
 
-      - name: 🚀 Apply ausführen
+      - name: 🌍 Terraform Init
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: |
-          terraform apply -auto-approve \
-            -var-file=environments/production.tfvars
+        run: terraform init -upgrade
+
+      - name: 🚀 Terraform Apply ausführen
+        working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+        run: terraform apply -auto-approve -var-file=environments/production.tfvars
