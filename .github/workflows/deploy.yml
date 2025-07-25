@@ -57,11 +57,11 @@ jobs:
           pip install --user checkov
           ~/.local/bin/checkov -d terraform/
 
-lint:
-  name: 🧹 TFLint Check
-  runs-on: self-hosted
-  needs: setup
-  steps:
+  lint:
+   name: 🧹 TFLint Check
+   runs-on: self-hosted
+   needs: setup
+   steps:
     - uses: actions/checkout@v4
     - name: 📥 TFLint installieren
       run: |
