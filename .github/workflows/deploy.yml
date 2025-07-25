@@ -34,7 +34,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.8.2
-          terraform_wrapper: false  # ❗️ Verhindert Probleme mit JS-Syntax
+          terraform_wrapper: false
 
       - name: 📄 Write Kubeconfig from Secret
         run: |
@@ -43,6 +43,25 @@ jobs:
 
       - name: 🐞 Debug Kubeconfig (optional)
         run: head -n 20 terraform/.kubeconfig
+
+      - name: 📂 Create tfvars file for selected environment
+        working-directory: terraform/environments
+        run: |
+          ENV="${{ github.event.inputs.environment || 'staging' }}"
+          if [ "$ENV" = "staging" ]; then
+            cat <<EOF > $ENV.tfvars
+            namespace   = "team-cong"
+            environment = "staging"
+            EOF
+          elif [ "$ENV" = "production" ]; then
+            cat <<EOF > $ENV.tfvars
+            namespace   = "team-cong"
+            environment = "production"
+            EOF
+          else
+            echo "Unsupported environment: $ENV"
+            exit 1
+          fi
 
       - name: 🚀 Terraform Init
         working-directory: terraform
@@ -66,8 +85,7 @@ jobs:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
           terraform plan \
-            -var="namespace=team-cong" \
-            -var="environment=${{ github.event.inputs.environment || 'staging' }}"
+            -var-file=environments/${{ github.event.inputs.environment || 'staging' }}.tfvars
 
       - name: ✅ Terraform Apply (nur auf main)
         if: github.ref == 'refs/heads/main'
@@ -76,5 +94,4 @@ jobs:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
           terraform apply -auto-approve \
-            -var="namespace=team-cong" \
-            -var="environment=${{ github.event.inputs.environment || 'staging' }}"
+            -var-file=environments/${{ github.event.inputs.environment || 'staging' }}.tfvars
