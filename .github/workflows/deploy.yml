@@ -14,7 +14,7 @@ on:
 jobs:
   terraform:
     name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
-    runs-on: ubuntu-latest
+    runs-on: self-hosted  # <– Lokaler Runner verwenden
 
     environment: ${{ github.event.inputs.environment || 'staging' }}
 
@@ -30,16 +30,14 @@ jobs:
         with:
           terraform_version: 1.8.2
 
-      - name: Write Kubeconfig from Secret
+      - name: Write kubeconfig to .kube/config
         run: |
-          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
-          chmod 600 terraform/.kubeconfig
-          
-      - name: Debug Kubeconfig
-        run: |
-          echo "Kubeconfig content:"
-          cat terraform/.kubeconfig | head -n 20
+          mkdir -p ~/.kube
+          echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
 
+      - name: Set KUBECONFIG env var
+        run: echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
 
       - name: Terraform Init
         working-directory: terraform
