@@ -1,3 +1,4 @@
+# deploy.yml
 name: Deploy Kubernetes Namespace via Terraform
 
 on:
@@ -21,8 +22,7 @@ jobs:
     outputs:
       environment: ${{ steps.setenv.outputs.environment }}
     steps:
-      - name: 📥 Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: 🔧 Tools installieren
         run: |
@@ -84,11 +84,6 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
-      - name: 🧪 Debug Kubeconfig
-        working-directory: terraform
-        run: |
-          ls -la
-          cat .kubeconfig
       - name: 🌍 Terraform Init
         working-directory: terraform
         env:
@@ -110,11 +105,6 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
-      - name: 🧪 Debug Kubeconfig
-        working-directory: terraform
-        run: |
-          ls -la
-          cat .kubeconfig
       - name: 📄 tfvars generieren
         run: |
           mkdir -p terraform/environments
@@ -149,12 +139,6 @@ jobs:
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
 
-      - name: 🧪 Debug Kubeconfig
-        working-directory: terraform
-        run: |
-          ls -la
-          cat .kubeconfig
-
       - name: 📄 tfvars generieren
         run: |
           mkdir -p terraform/environments
@@ -176,7 +160,8 @@ jobs:
         run: |
           terraform state show kubernetes_namespace.this >/dev/null 2>&1 && \
             echo "✅ Namespace bereits im Terraform-State" || \
-          (echo "🔁 Namespace wird importiert" && terraform import kubernetes_namespace.this team-cong)
+            (echo "🔁 Namespace wird importiert" && \
+              terraform import -var="namespace=team-cong" -var="environment=production" kubernetes_namespace.this team-cong || true)
 
       - name: 🚀 Terraform Apply ausführen
         working-directory: terraform
