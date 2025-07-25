@@ -19,13 +19,20 @@ flowchart TD
 
     style A fill:,stroke:#aaa
     style B fill:,stroke:#999
-    style C fill:#,stroke:#aaa
-    style D fill:#,stroke:#aaa
-    style E fill:#,stroke:#999
-    style F fill:#,stroke:#999
-    style G fill:#,stroke:#999
-    style H fill:#,stroke:#7c7
-    style I fill:#,stroke:#d77 
+    style C fill:,stroke:#aaa
+    style D fill:,stroke:#aaa
+    style E fill:,stroke:#999
+    style F fill:,stroke:#999
+    style G fill:,stroke:#999
+    style H fill:,stroke:#7c7
+    style I fill:,stroke:#d77
+
 
 
 ```
+## Hinweise
+.  Die KUBECONFIG wird aus einem Secret (KUBECONFIG_B64) zur Laufzeit generiert.
+
+. terraform apply wird nur auf dem main-Branch automatisch ausgeführt.
+
+. Die Umgebung staging dient rein zu Testzwecken (Plan & Validate).
