@@ -12,77 +12,63 @@ on:
         required: true
         default: 'staging'
 
-env:
-  TF_VERSION: 1.8.2
-
 jobs:
   setup:
-    name: 🧾 Setup & Shared Environment
+    name: 🔧 Setup
     runs-on: self-hosted
     outputs:
-      environment: ${{ steps.setenv.outputs.environment }}
+      environment: ${{ steps.setenv.outputs.env }}
     steps:
-      - name: 📦 Checkout
+      - name: 🧾 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 🔧 Install Tools
+      - name: 🔧 Install required tools (unzip, curl, jq)
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip curl jq python3 python3-pip
-          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-          curl -sSLo terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-linux-amd64.tar.gz
-          tar -xzf terraform-docs.tar.gz && chmod +x terraform-docs && sudo mv terraform-docs /usr/local/bin/
-          pip install --user checkov
 
-      - name: ⬇️ Install Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-          terraform_wrapper: false
-
-      - name: 🔐 Write kubeconfig
-        env:
-          KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
+      - name: 📂 Write Kubeconfig from Secret
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
 
-      - name: ⚙️ Set Environment
+      - name: 🧠 Set Environment
         id: setenv
         run: |
-          if [[ "${{ github.event.inputs.environment }}" != "" ]]; then
-            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-          else
-            echo "environment=staging" >> $GITHUB_OUTPUT
-          fi
+          ENV="${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production') || 'staging' }}"
+          echo "env=$ENV" >> $GITHUB_OUTPUT
 
   lint:
-    name: 🧹 Terraform Lint (tflint)
+    name: 🔍 TFLint
     needs: setup
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      - run: tflint --init && tflint
-        working-directory: terraform
 
-  docs:
-    name: 📝 Terraform Docs
-    needs: setup
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-      - run: terraform-docs markdown table . > TERRAFORM_DOCS.md
+      - name: 📦 Install TFLint
         working-directory: terraform
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
 
-  security:
+      - name: 🚨 Run TFLint
+        working-directory: terraform
+        run: tflint
+
+  checkov:
     name: 🛡️ Checkov Security Scan
     needs: setup
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      - run: ~/.local/bin/checkov -d terraform/
+
+      - name: 🛡️ Install & Run Checkov
+        working-directory: terraform
+        run: |
+          pip install --user checkov
+          ~/.local/bin/checkov -d .
 
   validate:
     name: ✅ Terraform Validate
@@ -90,8 +76,16 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      - run: terraform validate
+
+      - name: Terraform Init
         working-directory: terraform
+        run: terraform init
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
 
@@ -101,32 +95,56 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      - name: 📁 Generate tfvars
-        run: |
-          mkdir -p terraform/environments
-          echo 'namespace = "team-cong"' > terraform/environments/${{ needs.setup.outputs.environment }}.tfvars
-          echo 'environment = "${{ needs.setup.outputs.environment }}"' >> terraform/environments/${{ needs.setup.outputs.environment }}.tfvars
-      - name: Terraform Init
-        run: terraform init
+
+      - name: 📂 Generate tfvars File
         working-directory: terraform
+        run: |
+          mkdir -p environments
+          ENV="${{ needs.setup.outputs.environment }}"
+          if [ "$ENV" = "staging" ]; then
+            cat <<EOF > environments/$ENV.tfvars
+            namespace   = "team-cong"
+            environment = "staging"
+            EOF
+          elif [ "$ENV" = "production" ]; then
+            cat <<EOF > environments/$ENV.tfvars
+            namespace   = "team-cong"
+            environment = "production"
+            EOF
+          else
+            echo "Unsupported environment: $ENV"
+            exit 1
+          fi
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
 
       - name: Terraform Plan
-        run: terraform plan -var-file=environments/${{ needs.setup.outputs.environment }}.tfvars
         working-directory: terraform
+        run: terraform plan -var-file=environments/${{ needs.setup.outputs.environment }}.tfvars
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
 
   apply:
     name: 🚀 Terraform Apply
-    needs: [plan]
-    runs-on: self-hosted
+    needs: [setup, plan]
     if: github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+    environment: production
     steps:
       - uses: actions/checkout@v4
-      - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file=environments/production.tfvars
+
+      - name: Terraform Init
         working-directory: terraform
+        run: terraform init
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve -var-file=environments/${{ needs.setup.outputs.environment }}.tfvars
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
