@@ -109,7 +109,7 @@ jobs:
   plan:
     name: 📐 Terraform Plan
     runs-on: self-hosted
-    needs: validate
+    needs: [setup, validate]
     steps:
       - uses: actions/checkout@v4
       - name: 📐 Plan ausführen
