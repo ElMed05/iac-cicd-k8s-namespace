@@ -50,16 +50,20 @@ jobs:
           mkdir -p environments
           ENV="${{ github.event.inputs.environment || 'staging' }}"
 
-          case "$ENV" in
-            staging|production)
-              echo "namespace = \"team-cong\"" > environments/$ENV.tfvars
-              echo "environment = \"$ENV\"" >> environments/$ENV.tfvars
-              ;;
-            *)
-              echo "Unsupported environment: $ENV"
-              exit 1
-              ;;
-          esac
+          if [ "$ENV" = "staging" ]; then
+          cat <<EOF > environments/$ENV.tfvars
+          namespace   = "team-cong"
+          environment = "staging"
+          EOF
+          elif [ "$ENV" = "production" ]; then
+          cat <<EOF > environments/$ENV.tfvars
+          namespace   = "team-cong"
+          environment = "production"
+          EOF
+          else
+            echo "Unsupported environment: $ENV"
+            exit 1
+          fi
 
       - name: 🚀 Terraform Init
         working-directory: terraform
