@@ -2,7 +2,9 @@ name: Deploy Kubernetes Namespace via Terraform
 
 on:
   push:
-    branches: [main]
+    branches: 
+    - main
+    - staging
   pull_request:
   workflow_dispatch:
     inputs:
