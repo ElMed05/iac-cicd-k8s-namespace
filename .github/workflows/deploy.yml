@@ -14,7 +14,7 @@ on:
 jobs:
   terraform:
     name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
-    runs-on: self-hosted  # Nutze deinen eigenen Runner
+    runs-on: self-hosted  # Dein eigener Runner muss laufen!
 
     environment: ${{ github.event.inputs.environment || 'staging' }}
 
@@ -22,51 +22,58 @@ jobs:
       KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
 
     steps:
-      - name: Checkout Repository
+      - name: 🧾 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install required tools (unzip, curl, jq)
+      - name: 🔧 Install required tools (unzip, curl, jq)
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip curl jq
 
-      - name: Install Terraform
+      - name: ⬇️ Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.8.2
+          terraform_wrapper: false  # ❗️ Verhindert Probleme mit JS-Syntax
 
-      - name: Write Kubeconfig from Secret
+      - name: 📄 Write Kubeconfig from Secret
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
 
-      - name: Debug Kubeconfig
-        run: |
-          echo "First lines of .kubeconfig:"
-          head -n 20 terraform/.kubeconfig
+      - name: 🐞 Debug Kubeconfig (optional)
+        run: head -n 20 terraform/.kubeconfig
 
-      - name: Terraform Init
+      - name: 🚀 Terraform Init
         working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform init
 
-      - name: Terraform Format Check
+      - name: ✅ Terraform Format Check
         working-directory: terraform
         run: terraform fmt -check -recursive
 
-      - name: Terraform Validate
+      - name: ✅ Terraform Validate
         working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform validate
 
-      - name: Terraform Plan
+      - name: 📐 Terraform Plan
         working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
           terraform plan \
             -var="namespace=team-cong" \
             -var="environment=${{ github.event.inputs.environment || 'staging' }}"
 
-      - name: Terraform Apply
+      - name: ✅ Terraform Apply (nur auf main)
         if: github.ref == 'refs/heads/main'
         working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
           terraform apply -auto-approve \
             -var="namespace=team-cong" \
