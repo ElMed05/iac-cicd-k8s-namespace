@@ -84,11 +84,20 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
+      - name: 🧪 Debug Kubeconfig
+        working-directory: terraform
+        run: |
+          ls -la
+          cat .kubeconfig
       - name: 🌍 Terraform Init
         working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform init -upgrade
       - name: ✅ Terraform Validate
         working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform validate
 
   plan:
@@ -101,6 +110,11 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
+      - name: 🧪 Debug Kubeconfig
+        working-directory: terraform
+        run: |
+          ls -la
+          cat .kubeconfig
       - name: 📄 tfvars generieren
         run: |
           mkdir -p terraform/environments
@@ -111,9 +125,13 @@ jobs:
           EOF
       - name: 🌍 Terraform Init
         working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform init -upgrade
       - name: 📐 Terraform Plan ausführen
         working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform plan -var-file=environments/${{ needs.setup.outputs.environment }}.tfvars
 
   apply:
@@ -129,6 +147,11 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
+      - name: 🧪 Debug Kubeconfig
+        working-directory: terraform
+        run: |
+          ls -la
+          cat .kubeconfig
       - name: 📄 tfvars generieren
         run: |
           mkdir -p terraform/environments
@@ -138,7 +161,11 @@ jobs:
           EOF
       - name: 🌍 Terraform Init
         working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform init -upgrade
       - name: 🚀 Terraform Apply ausführen
         working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform apply -auto-approve -var-file=environments/production.tfvars
