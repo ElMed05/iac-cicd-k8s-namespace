@@ -73,7 +73,7 @@ jobs:
       - name: 🛡️ Security Check mit Checkov (optional)
         run: |
           pip install checkov
-          checkov -d terraform/
+          ~/.local/bin/checkov -d terraform/
 
 
       - name: 📂 Generate tfvars file dynamically
