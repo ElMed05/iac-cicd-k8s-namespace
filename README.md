@@ -1,30 +1,36 @@
 # iac-cicd-k8s-namespace
-CI/CD-Pipeline für das Deployment eines Kubernetes Namespace via Terraform auf einem Minikube-Cluster – realitätsnah aufgebaut
+Dieses Projekt demonstriert einen vollständigen CI/CD-Workflow für Kubernetes-IaC – lokal entwickelbar, teamfähig und sofort erweiterbar.
 
+**CI/CD-Pipeline für das Deployment eines Kubernetes Namespace via Terraform auf einem Minikube-Cluster**  
+Dieses Projekt zeigt eine produktionsnahe Umsetzung von Infrastructure-as-Code (IaC) mit GitHub Actions, Terraform und Kubernetes (Minikube).  
 
-# IaC + CI/CD: Kubernetes Namespace Deployment
-
-Dieses Projekt zeigt, wie man eine CI/CD-Pipeline für Infrastructure as Code mit Terraform und GitHub Actions umsetzt. Als Zielumgebung dient ein lokaler Minikube-Cluster.
+---
 
 ## 🔧 Tech Stack
 
-- Terraform (IaC)
-- GitHub Actions (CI/CD)
-- Kubernetes (Minikube)
-- GitHub Secrets (für Kubeconfig)
+- **Terraform** – Infrastruktur als Code
+- **GitHub Actions** – Automatisierte CI/CD Workflows
+- **Kubernetes (Minikube)** – Zielumgebung
+- **Checkov** – Sicherheitsprüfung der Terraform-Konfiguration
+- **TFLint** – Linter für Terraform
+- **GitHub Secrets** – Speicherung der Base64-kodierten Kubeconfig
 
-## 📁 Struktur
+---
+
+## 📁 Projektstruktur
 
 ```bash
 terraform/
-├── main.tf                # Terraform Setup + Provider
-├── namespace.tf           # Resource: Kubernetes Namespace
-├── variables.tf           # Input Variablen
+├── main.tf                # Provider-Definition & Terraform-Setup
+├── namespace.tf           # Kubernetes Namespace Resource
+├── variables.tf           # Input-Variablen
 └── environments/
     ├── staging.tfvars     # Staging-Konfiguration
-    └── production.tfvars  # Prod-Konfiguration
-.github/workflows/deploy.yml  # CI/CD Pipeline
+    └── production.tfvars  # Production-Konfiguration
 
+.github/workflows/
+└── deploy.yml             # GitHub Actions Workflow für CI/CD
+---
 
 
 

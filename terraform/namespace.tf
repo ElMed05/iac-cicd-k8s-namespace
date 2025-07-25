@@ -5,4 +5,8 @@ resource "kubernetes_namespace" "this" {
       environment = var.environment
     }
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
