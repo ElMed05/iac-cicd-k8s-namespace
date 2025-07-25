@@ -29,11 +29,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unzip curl jq python3 python3-pip
 
-      - name: 🔐 Kubeconfig aus Secret schreiben
-        run: |
-          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
-          chmod 600 terraform/.kubeconfig
-
       - name: 📍 Umgebung festlegen
         id: setenv
         run: |
@@ -51,6 +46,10 @@ jobs:
     needs: setup
     steps:
       - uses: actions/checkout@v4
+      - name: 🔐 Schreibe Kubeconfig
+        run: |
+          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+          chmod 600 terraform/.kubeconfig
       - name: Run Checkov
         run: |
           pip install --user checkov
@@ -62,6 +61,10 @@ jobs:
     needs: setup
     steps:
       - uses: actions/checkout@v4
+      - name: 🔐 Schreibe Kubeconfig
+        run: |
+          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+          chmod 600 terraform/.kubeconfig
       - name: Install TFLint
         run: |
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
@@ -77,17 +80,15 @@ jobs:
     needs: setup
     steps:
       - uses: actions/checkout@v4
-
+      - name: 🔐 Schreibe Kubeconfig
+        run: |
+          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+          chmod 600 terraform/.kubeconfig
       - name: 🌍 Terraform Init
         working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform init -upgrade
-
       - name: ✅ Terraform Validate
         working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform validate
 
   plan:
@@ -96,7 +97,10 @@ jobs:
     needs: [setup, validate]
     steps:
       - uses: actions/checkout@v4
-
+      - name: 🔐 Schreibe Kubeconfig
+        run: |
+          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+          chmod 600 terraform/.kubeconfig
       - name: 📄 tfvars generieren
         run: |
           mkdir -p terraform/environments
@@ -105,17 +109,11 @@ jobs:
           namespace   = "team-cong"
           environment = "$ENV"
           EOF
-
       - name: 🌍 Terraform Init
         working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform init -upgrade
-
       - name: 📐 Terraform Plan ausführen
         working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform plan -var-file=environments/${{ needs.setup.outputs.environment }}.tfvars
 
   apply:
@@ -127,23 +125,20 @@ jobs:
       name: production
     steps:
       - uses: actions/checkout@v4
-
-      - name: 📄 tfvars für production generieren
+      - name: 🔐 Schreibe Kubeconfig
+        run: |
+          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+          chmod 600 terraform/.kubeconfig
+      - name: 📄 tfvars generieren
         run: |
           mkdir -p terraform/environments
           cat <<EOF > terraform/environments/production.tfvars
           namespace   = "team-cong"
           environment = "production"
           EOF
-
       - name: 🌍 Terraform Init
         working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform init -upgrade
-
       - name: 🚀 Terraform Apply ausführen
         working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform apply -auto-approve -var-file=environments/production.tfvars
