@@ -81,15 +81,15 @@ jobs:
 
       - name: 📄 Schreibe tfvars dynamisch
         run: |
-          mkdir -p terraform/environments
-          ENV="${{ needs.setup.outputs.environment }}"
+          mkdir -p environments
+          ENV="staging"
           if [ "$ENV" = "staging" ]; then
-          cat <<EOF > terraform/environments/$ENV.tfvars
+          cat <<EOF > environments/$ENV.tfvars
           namespace   = "team-cong"
           environment = "staging"
           EOF
           elif [ "$ENV" = "production" ]; then
-          cat <<EOF > terraform/environments/$ENV.tfvars
+          cat <<EOF > environments/$ENV.tfvars
           namespace   = "team-cong"
           environment = "production"
           EOF
@@ -97,6 +97,7 @@ jobs:
             echo "Unsupported environment: $ENV"
             exit 1
           fi
+
 
       - name: 🌍 Terraform Init
         working-directory: terraform
