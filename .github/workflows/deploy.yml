@@ -5,7 +5,6 @@ on:
     branches: 
     - main
     - staging
-  pull_request:
   workflow_dispatch:
     inputs:
       environment:
@@ -18,7 +17,7 @@ jobs:
     name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
     runs-on: self-hosted
 
-    environment: ${{ github.event.inputs.environment || 'staging' }}
+    environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production') || 'staging' }}
 
     env:
       KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
@@ -43,12 +42,6 @@ jobs:
           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
           chmod 600 terraform/.kubeconfig
 
-      - name: 🐞 Debug Kubeconfig (optional)
-        run: head -n 20 terraform/.kubeconfig
-      
-      - name: 🧾 Checkout Repository
-        uses: actions/checkout@v4
-
       - name: 🔍 Terraform Lint mit tflint
         working-directory: terraform
         run: |
@@ -69,18 +62,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip
 
-
       - name: 🛡️ Security Check mit Checkov (optional)
         run: |
-          pip install checkov
+          pip install --user checkov
           ~/.local/bin/checkov -d terraform/
-
 
       - name: 📂 Generate tfvars file dynamically
         working-directory: terraform
         run: |
           mkdir -p environments
-          ENV="${{ github.event.inputs.environment || 'staging' }}"
+          ENV="${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production') || 'staging' }}"
 
           if [ "$ENV" = "staging" ]; then
           cat <<EOF > environments/$ENV.tfvars
@@ -119,13 +110,13 @@ jobs:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
           terraform plan \
-            -var-file=environments/${{ github.event.inputs.environment || 'staging' }}.tfvars
+            -var-file=environments/${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production') || 'staging' }}.tfvars
 
-      - name: ✅ Terraform Apply (nur auf main)
-        if: github.ref == 'refs/heads/main'
+      - name: ✅ Terraform Apply (nur bei Push auf main und environment = production)
+        if: github.ref == 'refs/heads/main' && (github.event.inputs.environment == 'production' || github.event.inputs.environment == '')
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
           terraform apply -auto-approve \
-            -var-file=environments/${{ github.event.inputs.environment || 'staging' }}.tfvars
+            -var-file=environments/production.tfvars
