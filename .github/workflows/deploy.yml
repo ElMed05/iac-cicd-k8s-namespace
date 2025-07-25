@@ -14,7 +14,7 @@ on:
 jobs:
   terraform:
     name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
-    runs-on: self-hosted  # <– Lokaler Runner verwenden
+    runs-on: self-hosted  # Nutze deinen eigenen Runner
 
     environment: ${{ github.event.inputs.environment || 'staging' }}
 
@@ -25,19 +25,25 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Install required tools (unzip, curl, jq)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip curl jq
+
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.8.2
 
-      - name: Write kubeconfig to .kube/config
+      - name: Write Kubeconfig from Secret
         run: |
-          mkdir -p ~/.kube
-          echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
-          chmod 600 ~/.kube/config
+          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+          chmod 600 terraform/.kubeconfig
 
-      - name: Set KUBECONFIG env var
-        run: echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+      - name: Debug Kubeconfig
+        run: |
+          echo "First lines of .kubeconfig:"
+          head -n 20 terraform/.kubeconfig
 
       - name: Terraform Init
         working-directory: terraform
