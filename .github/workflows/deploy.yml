@@ -45,6 +45,30 @@ jobs:
 
       - name: 🐞 Debug Kubeconfig (optional)
         run: head -n 20 terraform/.kubeconfig
+      
+      - name: 🧾 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Terraform Lint mit tflint
+        working-directory: terraform
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
+          tflint
+
+      - name: 📝 Generiere Terraform-Doku mit terraform-docs
+        working-directory: terraform
+        run: |
+          curl -sSLo terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-linux-amd64.tar.gz
+          tar -xzf terraform-docs.tar.gz
+          chmod +x terraform-docs
+          ./terraform-docs markdown table . > TERRAFORM_DOCS.md
+
+      - name: 🛡️ Security Check mit Checkov (optional)
+        run: |
+          pip install checkov
+          checkov -d terraform/
+
 
       - name: 📂 Generate tfvars file dynamically
         working-directory: terraform
