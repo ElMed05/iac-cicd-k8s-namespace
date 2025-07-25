@@ -57,16 +57,20 @@ jobs:
           pip install --user checkov
           ~/.local/bin/checkov -d terraform/
 
-  tflint:
-    name: 🔍 TFLint
-    runs-on: self-hosted
-    needs: setup
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-          tflint --init
-          tflint terraform/
+lint:
+  name: 🧹 TFLint Check
+  runs-on: self-hosted
+  needs: setup
+  steps:
+    - uses: actions/checkout@v4
+    - name: 📥 TFLint installieren
+      run: |
+        curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+    - name: 🔍 Lint Terraform Code
+      working-directory: terraform
+      run: |
+        tflint --init
+        tflint
 
   validate:
     name: ✅ Terraform Validate
