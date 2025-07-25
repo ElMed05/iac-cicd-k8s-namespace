@@ -134,7 +134,7 @@ jobs:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform plan -var-file=environments/${{ needs.setup.outputs.environment }}.tfvars
 
-    apply:
+  apply:
     name: 🚀 Terraform Apply
     runs-on: self-hosted
     needs: plan
