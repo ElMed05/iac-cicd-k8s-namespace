@@ -36,3 +36,7 @@ override.tf.json
 .terraformrc
 terraform.rc
 minikube-linux-amd64
+
+# Ignor minkube secret
+*kubeconfig.b64
+*minikube-kubeconfig.yaml

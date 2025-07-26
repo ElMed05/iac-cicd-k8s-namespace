@@ -128,9 +128,7 @@ jobs:
     name: 🚀 Terraform Apply
     runs-on: self-hosted
     needs: plan
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
     steps:
       - uses: actions/checkout@v4
 
@@ -142,10 +140,15 @@ jobs:
       - name: 📄 tfvars generieren
         run: |
           mkdir -p terraform/environments
-          cat <<EOF > terraform/environments/production.tfvars
-          namespace   = "team-cong-prod"
-          environment = "production"
-          EOF
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            NS="team-cong-prod"
+            ENV="production"
+          else
+            NS="team-cong-staging"
+            ENV="staging"
+          fi
+          echo "namespace   = \"$NS\"" > terraform/environments/$ENV.tfvars
+          echo "environment = \"$ENV\"" >> terraform/environments/$ENV.tfvars
 
       - name: 🌍 Terraform Init
         working-directory: terraform
@@ -159,29 +162,45 @@ jobs:
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
 
-
       - name: 🧩 Namespace ggf. importieren
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            NS="team-cong-prod"
+            ENV="production"
+          else
+            NS="team-cong-staging"
+            ENV="staging"
+          fi
           terraform state show kubernetes_namespace.this >/dev/null 2>&1 && \
             echo "✅ Namespace bereits im Terraform-State" || \
             (echo "🔁 Namespace wird importiert" && \
-              terraform import -var="namespace=team-cong-prod" -var="environment=production" kubernetes_namespace.this team-cong-prod || true)
+              terraform import -var="namespace=$NS" -var="environment=$ENV" kubernetes_namespace.this $NS || true)
 
       - name: 🚀 Terraform Apply ausführen
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: terraform apply -auto-approve -var-file=environments/production.tfvars
-      
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            terraform apply -auto-approve -var-file=environments/production.tfvars
+          else
+            terraform apply -auto-approve -var-file=environments/staging.tfvars
+          fi
+
       - name: 🔍 Smoke Test Namespace vorhanden & Label korrekt
         run: |
-          echo "✅ Prüfe, ob Namespace 'team-cong' vorhanden ist und korrekt gelabelt wurde..."
-          kubectl get ns team-cong-prod -o json \
-            | jq -r '.metadata.labels.environment' \
-            | grep -q "production" && \
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            NS="team-cong-prod"
+            EXPECT="production"
+          else
+            NS="team-cong-staging"
+            EXPECT="staging"
+          fi
+          echo "✅ Prüfe Namespace '$NS' und Label..."
+          kubectl get ns $NS -o json | jq -r '.metadata.labels.environment' | grep -q "$EXPECT" && \
           echo "✅ Namespace ist korrekt vorhanden und gelabelt." || \
           (echo "❌ Namespace fehlt oder Label ist falsch!" && exit 1)
         env:
