@@ -153,6 +153,13 @@ jobs:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform init -upgrade
 
+      - name: 🐛 Debug Cluster Info
+        run: |
+          kubectl cluster-info
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+
+
       - name: 🧩 Namespace ggf. importieren
         working-directory: terraform
         env:
