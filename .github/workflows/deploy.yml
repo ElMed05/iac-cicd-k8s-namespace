@@ -179,7 +179,7 @@ jobs:
       - name: 🔍 Smoke Test Namespace vorhanden & Label korrekt
         run: |
           echo "✅ Prüfe, ob Namespace 'team-cong' vorhanden ist und korrekt gelabelt wurde..."
-          kubectl get ns team-cong -o json \
+          kubectl get ns team-cong-prod -o json \
             | jq -r '.metadata.labels.environment' \
             | grep -q "production" && \
           echo "✅ Namespace ist korrekt vorhanden und gelabelt." || \
