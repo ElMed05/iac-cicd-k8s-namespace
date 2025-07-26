@@ -110,7 +110,7 @@ jobs:
           mkdir -p terraform/environments
           ENV="${{ needs.setup.outputs.environment }}"
           cat <<EOF > terraform/environments/$ENV.tfvars
-          namespace   = "team-cong"
+          namespace   = "team-cong-Saging"
           environment = "$ENV"
           EOF
       - name: 🌍 Terraform Init
@@ -143,7 +143,7 @@ jobs:
         run: |
           mkdir -p terraform/environments
           cat <<EOF > terraform/environments/production.tfvars
-          namespace   = "team-cong"
+          namespace   = "team-cong-Prod"
           environment = "production"
           EOF
 

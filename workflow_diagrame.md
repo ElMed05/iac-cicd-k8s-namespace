@@ -1,5 +1,5 @@
 
-## Workflow-Diagramm
+# CI/CD-Workflow für Terraform + Kubernetes Namespace
 
 ```mermaid
 
@@ -14,8 +14,9 @@ flowchart TD
     E --> F[📐 plan<br>- tfvars erneut generieren<br>- terraform plan]
 
     F --> G{Branch == main?}
-    G -- Ja --> H[🚀 apply<br>terraform apply für production]
-    G -- Nein --> I[❌ apply wird nicht ausgeführt]
+    G -- Ja --> H[Namespace importieren falls nötig = terraform import]
+    H --> I[Apply = terraform apply auf production]
+    G -- Nein --> J[Kein Apply = nur Plan]
 
     style A fill:,stroke:#aaa
     style B fill:,stroke:#999
@@ -25,7 +26,9 @@ flowchart TD
     style F fill:,stroke:#999
     style G fill:,stroke:#999
     style H fill:,stroke:#7c7
-    style I fill:,stroke:#d77
+    style I fill:,stroke:#7c7
+    style J fill:,stroke:#d77
+
 
 
 
