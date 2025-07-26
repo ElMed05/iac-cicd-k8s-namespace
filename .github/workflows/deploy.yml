@@ -168,7 +168,7 @@ jobs:
           terraform state show kubernetes_namespace.this >/dev/null 2>&1 && \
             echo "✅ Namespace bereits im Terraform-State" || \
             (echo "🔁 Namespace wird importiert" && \
-              terraform import -var="namespace=team-cong-prod" -var="environment=production" kubernetes_namespace.this team-cong || true)
+              terraform import -var="namespace=team-cong-prod" -var="environment=production" kubernetes_namespace.this team-cong-prod || true)
 
       - name: 🚀 Terraform Apply ausführen
         working-directory: terraform
