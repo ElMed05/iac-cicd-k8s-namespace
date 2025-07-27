@@ -143,9 +143,9 @@ jobs:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            terraform apply -auto-approve -var-file=terraform/environments/production.tfvars
+            terraform apply -auto-approve -var-file=environments/production.tfvars
           else
-            terraform apply -auto-approve -var-file=terraform/environments/staging.tfvars
+            terraform apply -auto-approve -var-file=environments/staging.tfvars
           fi
 
       - name: 📦 Helm Chart deployen (nginx)
