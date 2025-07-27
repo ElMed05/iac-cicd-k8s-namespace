@@ -180,6 +180,18 @@ jobs:
             terraform apply -auto-approve -var-file=environments/staging.tfvars
           fi
 
+      - name: 🔍 Helm-Repo & Chart-Verfügbarkeit prüfen
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+          helm search repo bitnami/nginx || {
+            echo "❌ Helm Chart 'bitnami/nginx' nicht verfügbar!"
+            exit 1
+          }
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+  
+
       - name: 📦 Helm Chart deployen (nginx)
         working-directory: terraform
         env:
