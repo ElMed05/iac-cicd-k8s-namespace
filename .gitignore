@@ -42,3 +42,9 @@ minikube-linux-amd64
 # Ignor minkube secret
 *kubeconfig.b64
 *minikube-kubeconfig.yaml
+
+# Ermögliche commit von lokalem Helm Chart
+!terraform/helm/charts/
+!terraform/helm/charts/**
+# Chart dependencies
+**/charts/*.tgz
