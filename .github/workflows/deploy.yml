@@ -1,4 +1,5 @@
-name: Deploy Kubernetes Namespace via Terraform
+# deploy.yml
+name: Deploy Kubernetes Namespace via Terraform + Helm
 
 on:
   push:
@@ -27,6 +28,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip curl jq python3 python3-pip
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
       - name:  Umgebung festlegen
         id: setenv
@@ -108,10 +110,8 @@ jobs:
         run: |
           mkdir -p terraform/environments
           ENV="${{ needs.setup.outputs.environment }}"
-          cat <<EOF > terraform/environments/$ENV.tfvars
-          namespace   = "team-cong-staging"
-          environment = "$ENV"
-          EOF
+          echo "namespace   = \"nginx-${ENV}\"" > terraform/environments/$ENV.tfvars
+          echo "environment = \"$ENV\"" >> terraform/environments/$ENV.tfvars
       - name:  Terraform Init
         working-directory: terraform
         env:
@@ -124,7 +124,7 @@ jobs:
         run: terraform plan -var-file=environments/${{ needs.setup.outputs.environment }}.tfvars
 
   apply:
-    name:  Terraform Apply
+    name:  Terraform Apply + Helm Deploy
     runs-on: self-hosted
     needs: plan
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
@@ -140,10 +140,10 @@ jobs:
         run: |
           mkdir -p terraform/environments
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            NS="team-cong-prod"
+            NS="nginx-production"
             ENV="production"
           else
-            NS="team-cong-staging"
+            NS="nginx-staging"
             ENV="staging"
           fi
           echo "namespace   = \"$NS\"" > terraform/environments/$ENV.tfvars
@@ -155,52 +155,28 @@ jobs:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform init -upgrade
 
-      - name:  Debug Cluster Info
-        run: |
-          kubectl cluster-info
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-
-      - name:  Namespace ggf. importieren
+      - name:  Terraform Apply
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            NS="team-cong-prod"
-            ENV="production"
-          else
-            NS="team-cong-staging"
-            ENV="staging"
-          fi
-          terraform state show kubernetes_namespace.this >/dev/null 2>&1 && \
-            echo " Namespace bereits im Terraform-State" || \
-            (echo " Namespace wird importiert" && \
-              terraform import -var="namespace=$NS" -var="environment=$ENV" kubernetes_namespace.this $NS || true)
+          terraform apply -auto-approve -var-file=environments/$ENV.tfvars
 
-      - name: 🚀 Terraform Apply ausführen
+      - name: 📦 Helm Chart deployen (nginx)
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            terraform apply -auto-approve -var-file=environments/production.tfvars
-          else
-            terraform apply -auto-approve -var-file=environments/staging.tfvars
-          fi
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+          helm upgrade --install nginx bitnami/nginx \
+            --namespace=$NS \
+            --create-namespace \
+            --values=helm/nginx-values.yaml
 
-      - name:  Smoke Test Namespace vorhanden & Label korrekt
+      - name:  Prüfe Helm Release + Ressourcen
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            NS="team-cong-prod"
-            EXPECT="production"
-          else
-            NS="team-cong-staging"
-            EXPECT="staging"
-          fi
-          echo " Prüfe Namespace '$NS' und Label..."
-          kubectl get ns $NS -o json | jq -r '.metadata.labels.environment' | grep -q "$EXPECT" && \
-          echo " Namespace ist korrekt vorhanden und gelabelt." || \
-          (echo " Namespace fehlt oder Label ist falsch!" && exit 1)
+          helm list -n $NS
+          kubectl get all -n $NS
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
