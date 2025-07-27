@@ -1,19 +1,17 @@
+replicaCount: 1
+
 service:
   type: ClusterIP
   port: 80
-
-persistence:
-  enabled: false
-  size: 1Gi
-  storageClass: standard
-
-replicaCount: 1
-
-tls:
-  enabled: false
 
 livenessProbe:
   enabled: false
 
 readinessProbe:
+  enabled: false
+
+ingress:
+  enabled: false
+
+persistence:
   enabled: false

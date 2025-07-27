@@ -1,8 +1,8 @@
 resource "helm_release" "nginx" {
   name       = var.nginx_release_name
-  #repository = "https://charts.bitnami.com/bitnami"
-  chart      = "${path.module}/helm/charts/nginx"
-  #version    = "21.0.8" # oder andere laut `helm search repo bitnami/nginx --versions`
+  chart      = "nginx"
+  repository = "https://charts.bitnami.com/bitnami"
+  version    = "21.0.8"
   namespace  = var.namespace
 
   values = [

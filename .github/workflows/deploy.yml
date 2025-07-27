@@ -161,21 +161,7 @@ jobs:
               -var="nginx_values_file=helm/nginx-values.yaml" \
               kubernetes_namespace.this $NS || true
 
-          echo "🔍 Prüfe, ob Helm Release $RELEASE im Terraform-State vorhanden ist..."
-          terraform state show helm_release.nginx >/dev/null 2>&1 || \
-            terraform import \
-              -var="namespace=$NS" \
-              -var="environment=$ENV" \
-              -var="nginx_release_name=$RELEASE" \
-              -var="nginx_values_file=helm/nginx-values.yaml" \
-              helm_release.nginx "$NS/$RELEASE" || true
-
-      - name: Helm repo sicherstellen
-        run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm repo update
-
-
+          echo "⏭️  Helm Release-Import wird übersprungen (lokales Chart)"
 
       - name: Terraform Apply
         working-directory: terraform
@@ -187,17 +173,6 @@ jobs:
           else
             terraform apply -auto-approve -var-file=environments/staging.tfvars
           fi
-
-      - name: 🔍 Helm-Repo & Chart-Verfügbarkeit prüfen
-        run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm repo update
-          helm search repo bitnami/nginx || {
-            echo "❌ Helm Chart 'bitnami/nginx' nicht verfügbar!"
-            exit 1
-          }
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
 
       - name: 🔄 Rollout Deployment neu starten (optional)
         run: |
@@ -221,3 +196,4 @@ jobs:
           kubectl get all -n $NS
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+  
