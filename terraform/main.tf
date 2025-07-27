@@ -23,6 +23,10 @@ provider "helm" {
     config_path    = "${path.module}/.kubeconfig"
     config_context = "minikube"
   }
+
+  registry_config_path   = "${path.module}/.helm/registry.json"
+  repository_config_path = "${path.module}/.helm/repositories.yaml"
+  repository_cache       = "${path.module}/.helm/cache"
 }
 
 

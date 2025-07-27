@@ -1,17 +1,11 @@
-replicaCount: 1
-
 service:
   type: ClusterIP
   port: 80
 
-livenessProbe:
-  enabled: false
-
-readinessProbe:
-  enabled: false
-
-ingress:
-  enabled: false
-
 persistence:
+  enabled: false
+
+replicaCount: 1
+
+tls:
   enabled: false
