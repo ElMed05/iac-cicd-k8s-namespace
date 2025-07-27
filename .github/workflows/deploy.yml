@@ -137,6 +137,25 @@ jobs:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: terraform init -upgrade
 
+      - name: Importiere Ressourcen falls vorhanden
+        working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            NS="cong-prod"
+            ENV="production"
+          else
+            NS="team-cong"
+            ENV="staging"
+          fi
+
+          terraform state show kubernetes_namespace.this >/dev/null 2>&1 || \
+            terraform import -var="namespace=$NS" -var="environment=$ENV" kubernetes_namespace.this $NS
+
+          terraform state show helm_release.nginx >/dev/null 2>&1 || \
+            terraform import -var="namespace=$NS" -var="environment=$ENV" helm_release.nginx $NS
+
       - name: Terraform Apply
         working-directory: terraform
         env:
@@ -155,15 +174,28 @@ jobs:
         run: |
           helm repo add bitnami https://charts.bitnami.com/bitnami
           helm repo update
+
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             NS="cong-prod"
           else
             NS="team-cong"
           fi
+
           helm upgrade --install nginx bitnami/nginx \
             --namespace=$NS \
             --create-namespace \
             --values=helm/nginx-values.yaml
+
+      - name: 🔄 Rollout Deployment neu starten (optional)
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            NS="cong-prod"
+          else
+            NS="team-cong"
+          fi
+          kubectl rollout restart deployment -n $NS || echo "⚠️ Kein Deployment gefunden – kein Rollout notwendig"
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
 
       - name: Prüfe Helm Release + Ressourcen
         run: |
@@ -176,4 +208,5 @@ jobs:
           kubectl get all -n $NS
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+
 
