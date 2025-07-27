@@ -41,7 +41,6 @@ terraform/
 # CI/CD-Workflow für Terraform + Kubernetes Namespace
 
 ```mermaid
-
 flowchart TD
     A[Push nach staging oder main\noder manuell via workflow_dispatch] --> B[ Setup\n- Tools installieren\n- kubeconfig aus Secret\n- Umgebung bestimmen]
     
@@ -61,7 +60,7 @@ flowchart TD
     G -- staging --> J[  Namespace-Import via terraform]
     J --> R[ Apply auf Dev Umgebung]
 
-    R --> L[🔍 Smoke Test\nLabel-Check via kubectl]
+    R --> L[ Smoke Test\nLabel-Check via kubectl]
 
     style A fill:#,stroke:#aaa
     style B fill:#,stroke:#aaa
@@ -76,7 +75,6 @@ flowchart TD
     style J fill:#,stroke:#d77
     style R fill:#,stroke:#d77
     style L fill:#,stroke:#06b
-
 ```
 
 
