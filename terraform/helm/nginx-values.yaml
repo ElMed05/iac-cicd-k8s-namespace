@@ -8,3 +8,6 @@ persistence:
   storageClass: standard
 
 replicaCount: 1
+
+tls:
+  enabled: false
