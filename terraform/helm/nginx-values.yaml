@@ -3,7 +3,7 @@ service:
   port: 80
 
 persistence:
-  enabled: true
+  enabled: false
   size: 1Gi
   storageClass: standard
 
