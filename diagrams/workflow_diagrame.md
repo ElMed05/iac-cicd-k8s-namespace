@@ -24,26 +24,17 @@ flowchart TD
 
     R --> L[🔍 Smoke Test\nLabel-Check via kubectl]
 
-    style A fill:#,stroke:#aaa
-    style B fill:#,stroke:#aaa
-    style C fill:#,stroke:#aaa
-    style D fill:#,stroke:#aaa
-    style E fill:#,stroke:#aaa
-    style F fill:#,stroke:#aaa
-    style G fill:#,stroke:#888
-    style H fill:#,stroke:#4a4
-    style I fill:#,stroke:#4a4
-    style K fill:#,stroke:#06b
-    style J fill:#,stroke:#d77
-    style R fill:#,stroke:#d77
-    style L fill:#,stroke:#06b
-
-
-
-
-
-
-
-
-
+    style A fill:,stroke:#aaa
+    style B fill:,stroke:#aaa
+    style C fill:,stroke:#aaa
+    style D fill:,stroke:#aaa
+    style E fill:,stroke:#aaa
+    style F fill:,stroke:#aaa
+    style G fill:,stroke:#888
+    style H fill:,stroke:#4a4
+    style I fill:,stroke:#4a4
+    style K fill:,stroke:#06b
+    style J fill:,stroke:#d77
+    style R fill:,stroke:#d77
+    style L fill:,stroke:#06b
 ```

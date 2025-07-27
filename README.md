@@ -17,8 +17,10 @@ Dieses Projekt implementiert Infrastructure-as-Code (IaC) mit GitHub Actions, Te
 ---
 ## 📁 GitHub Branch-Strategie
 
-- **main für Produktion:** -Führt zu Terraform Apply auf Namespace in PROD.
-- **staging für Entwicklung**  
+- **main für Produktion:** Führt zu Terraform Apply auf Namespace in PROD.
+- **staging für Entwicklung**  löst Sicherheits- und Syntaxprüfungen + Terraform Plan aus.
+- **workflow_dispatch**  Manueller Trigger mit Umgebungswahl (z.B staging, production)
+
 ---
 ## 📁 Projektstruktur
 
@@ -57,7 +59,7 @@ flowchart TD
     I --> K[🔍 Smoke Test\nLabel-Check via kubectl]
 
     G -- staging --> J[ 🧩 Namespace-Import via terraform]
-    J --> R[🚀 Apply auf staging Umgebung]
+    J --> R[🚀 Apply auf Dev Umgebung]
 
     R --> L[🔍 Smoke Test\nLabel-Check via kubectl]
 
@@ -75,14 +77,25 @@ flowchart TD
     style R fill:#,stroke:#d77
     style L fill:#,stroke:#06b
 
-
-
-
-
-
 ```
 
 
+- **setup** – Tools installieren, kubeconfig schreiben, Umgebung auslesen
+- **checkov** – Sicherheits-Scan via Checkov
+- **lint** – Terraform Linting via TFLint
+- **validate** – Terraform init & validate
+- **plan** – Terraform plan mit .tfvars aus Umgebung
+- **apply** – auf `main` für `Prod umgebung`und auf `staging` für `staging umgebung`', mit optionalem terraform import (wenn Namespace bereits vorhanden)
 
+## Besonderheiten
 
+- .kubeconfig wird Base64-kodiert über GitHub Secret bereitgestellt
+- Wenn Namespace bereits existiert, wird er automatisch importiert (terraform import)
+- Bei staging erfolgt  Apply, nur auf Dev umgebung
+- tfvars-Dateien werden dynamisch generiert
 
+## Optional erweiterbar um
+
+- Unit-Tests
+- Rollout von Kubernetes Deployments
+- Helm-Charts / ArgoCD / Tekton
