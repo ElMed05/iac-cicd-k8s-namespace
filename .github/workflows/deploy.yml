@@ -119,61 +119,61 @@ jobs:
           terraform plan -var-file=terraform/environments/${{ needs.setup.outputs.environment }}.tfvars
 
   apply:
-  name: Terraform Apply + Helm Deploy
-  runs-on: self-hosted
-  needs: plan
-  if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
-  steps:
-    - uses: actions/checkout@v4
+    name: Terraform Apply + Helm Deploy
+    runs-on: self-hosted
+    needs: plan
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: Schreibe Kubeconfig
-      run: |
-        echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
-        chmod 600 terraform/.kubeconfig
+      - name: Schreibe Kubeconfig
+        run: |
+          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+          chmod 600 terraform/.kubeconfig
 
-    - name: Terraform Init
-      working-directory: terraform
-      env:
-        KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-      run: terraform init -upgrade
+      - name: Terraform Init
+        working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+        run: terraform init -upgrade
 
-    - name: Terraform Apply
-      working-directory: terraform
-      env:
-        KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-      run: |
-        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          terraform apply -auto-approve -var-file=terraform/environments/production.tfvars
-        else
-          terraform apply -auto-approve -var-file=terraform/environments/staging.tfvars
-        fi
+      - name: Terraform Apply
+        working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            terraform apply -auto-approve -var-file=terraform/environments/production.tfvars
+          else
+            terraform apply -auto-approve -var-file=terraform/environments/staging.tfvars
+          fi
 
-    - name: 📦 Helm Chart deployen (nginx)
-      working-directory: terraform
-      env:
-        KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-      run: |
-        helm repo add bitnami https://charts.bitnami.com/bitnami
-        helm repo update
-        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          NS="cong-prod"
-        else
-          NS="team-cong"
-        fi
-        helm upgrade --install nginx bitnami/nginx \
-          --namespace=$NS \
-          --create-namespace \
-          --values=helm/nginx-values.yaml
+      - name: 📦 Helm Chart deployen (nginx)
+        working-directory: terraform
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            NS="cong-prod"
+          else
+            NS="team-cong"
+          fi
+          helm upgrade --install nginx bitnami/nginx \
+            --namespace=$NS \
+            --create-namespace \
+            --values=helm/nginx-values.yaml
 
-    - name: Prüfe Helm Release + Ressourcen
-      run: |
-        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          NS="cong-prod"
-        else
-          NS="team-cong"
-        fi
-        helm list -n $NS
-        kubectl get all -n $NS
-      env:
-        KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+      - name: Prüfe Helm Release + Ressourcen
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            NS="cong-prod"
+          else
+            NS="team-cong"
+          fi
+          helm list -n $NS
+          kubectl get all -n $NS
+        env:
+          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
 
