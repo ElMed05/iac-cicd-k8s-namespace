@@ -170,6 +170,12 @@ jobs:
               -var="nginx_values_file=helm/nginx-values.yaml" \
               helm_release.nginx "$NS/$RELEASE" || true
 
+      - name: Helm repo sicherstellen
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+
+
 
       - name: Terraform Apply
         working-directory: terraform
