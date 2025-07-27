@@ -1,179 +1,179 @@
-# deploy.yml
-name: Deploy Kubernetes Namespace via Terraform + Helm
+# # deploy.yml
+# name: Deploy Kubernetes Namespace via Terraform + Helm
 
-on:
-  push:
-    branches: [main, staging]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Zielumgebung (staging oder production)'
-        required: true
-        default: 'staging'
+# on:
+#   push:
+#     branches: [main, staging]
+#   workflow_dispatch:
+#     inputs:
+#       environment:
+#         description: 'Zielumgebung (staging oder production)'
+#         required: true
+#         default: 'staging'
 
-env:
-  TF_VERSION: '1.8.2'
-  KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
+# env:
+#   TF_VERSION: '1.8.2'
+#   KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
 
-jobs:
-  setup:
-    name: Setup Tools & Umgebung
-    runs-on: self-hosted
-    outputs:
-      environment: ${{ steps.setenv.outputs.environment }}
-    steps:
-      - uses: actions/checkout@v4
+# jobs:
+#   setup:
+#     name: Setup Tools & Umgebung
+#     runs-on: self-hosted
+#     outputs:
+#       environment: ${{ steps.setenv.outputs.environment }}
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: 🔧 Tools installieren
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip curl jq python3 python3-pip
-          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+#       - name: 🔧 Tools installieren
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y unzip curl jq python3 python3-pip
+#           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-      - name: Umgebung festlegen
-        id: setenv
-        run: |
-          if [ "${{ github.event.inputs.environment }}" != "" ]; then
-            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-          else
-            echo "environment=staging" >> $GITHUB_OUTPUT
-          fi
+#       - name: Umgebung festlegen
+#         id: setenv
+#         run: |
+#           if [ "${{ github.event.inputs.environment }}" != "" ]; then
+#             echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+#           elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+#             echo "environment=production" >> $GITHUB_OUTPUT
+#           else
+#             echo "environment=staging" >> $GITHUB_OUTPUT
+#           fi
 
-  checkov:
-    name: Checkov Scan
-    runs-on: self-hosted
-    needs: setup
-    steps:
-      - uses: actions/checkout@v4
-      - name: Schreibe Kubeconfig
-        run: |
-          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
-          chmod 600 terraform/.kubeconfig
-      - name: Run Checkov
-        run: |
-          pip install --user checkov
-          ~/.local/bin/checkov -d terraform/
+#   checkov:
+#     name: Checkov Scan
+#     runs-on: self-hosted
+#     needs: setup
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: Schreibe Kubeconfig
+#         run: |
+#           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+#           chmod 600 terraform/.kubeconfig
+#       - name: Run Checkov
+#         run: |
+#           pip install --user checkov
+#           ~/.local/bin/checkov -d terraform/
 
-  lint:
-    name: TFLint
-    runs-on: self-hosted
-    needs: setup
-    steps:
-      - uses: actions/checkout@v4
-      - name: Schreibe Kubeconfig
-        run: |
-          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
-          chmod 600 terraform/.kubeconfig
-      - name: Install TFLint
-        run: |
-          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-      - name: Run TFLint
-        working-directory: terraform
-        run: |
-          tflint --init
-          tflint
+#   lint:
+#     name: TFLint
+#     runs-on: self-hosted
+#     needs: setup
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: Schreibe Kubeconfig
+#         run: |
+#           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+#           chmod 600 terraform/.kubeconfig
+#       - name: Install TFLint
+#         run: |
+#           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+#       - name: Run TFLint
+#         working-directory: terraform
+#         run: |
+#           tflint --init
+#           tflint
 
-  validate:
-    name: Terraform Validate
-    runs-on: self-hosted
-    needs: setup
-    steps:
-      - uses: actions/checkout@v4
-      - name: Schreibe Kubeconfig
-        run: |
-          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
-          chmod 600 terraform/.kubeconfig
-      - name: Terraform Init
-        working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: terraform init -upgrade
-      - name: Terraform Validate
-        working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: terraform validate
+#   validate:
+#     name: Terraform Validate
+#     runs-on: self-hosted
+#     needs: setup
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: Schreibe Kubeconfig
+#         run: |
+#           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+#           chmod 600 terraform/.kubeconfig
+#       - name: Terraform Init
+#         working-directory: terraform
+#         env:
+#           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+#         run: terraform init -upgrade
+#       - name: Terraform Validate
+#         working-directory: terraform
+#         env:
+#           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+#         run: terraform validate
 
-  plan:
-    name: Terraform Plan
-    runs-on: self-hosted
-    needs: [setup, validate]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Schreibe Kubeconfig
-        run: |
-          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
-          chmod 600 terraform/.kubeconfig
-      - name: Terraform Init
-        working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: terraform init -upgrade
-      - name: Terraform Plan ausführen
-        working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: |
-          terraform plan -var-file=terraform/environments/${{ needs.setup.outputs.environment }}.tfvars
+#   plan:
+#     name: Terraform Plan
+#     runs-on: self-hosted
+#     needs: [setup, validate]
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: Schreibe Kubeconfig
+#         run: |
+#           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+#           chmod 600 terraform/.kubeconfig
+#       - name: Terraform Init
+#         working-directory: terraform
+#         env:
+#           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+#         run: terraform init -upgrade
+#       - name: Terraform Plan ausführen
+#         working-directory: terraform
+#         env:
+#           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+#         run: |
+#           terraform plan -var-file=terraform/environments/${{ needs.setup.outputs.environment }}.tfvars
 
-  apply:
-    name: Terraform Apply + Helm Deploy
-    runs-on: self-hosted
-    needs: plan
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
-    steps:
-      - uses: actions/checkout@v4
+#   apply:
+#     name: Terraform Apply + Helm Deploy
+#     runs-on: self-hosted
+#     needs: plan
+#     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Schreibe Kubeconfig
-        run: |
-          echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
-          chmod 600 terraform/.kubeconfig
+#       - name: Schreibe Kubeconfig
+#         run: |
+#           echo "$KUBECONFIG_B64" | base64 -d > terraform/.kubeconfig
+#           chmod 600 terraform/.kubeconfig
 
-      - name: Terraform Init
-        working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: terraform init -upgrade
+#       - name: Terraform Init
+#         working-directory: terraform
+#         env:
+#           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+#         run: terraform init -upgrade
 
-      - name: Terraform Apply
-        working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            terraform apply -auto-approve -var-file=terraform/environments/production.tfvars
-          else
-            terraform apply -auto-approve -var-file=terraform/environments/staging.tfvars
-          fi
+#       - name: Terraform Apply
+#         working-directory: terraform
+#         env:
+#           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+#         run: |
+#           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+#             terraform apply -auto-approve -var-file=terraform/environments/production.tfvars
+#           else
+#             terraform apply -auto-approve -var-file=terraform/environments/staging.tfvars
+#           fi
 
-      - name: 📦 Helm Chart deployen (nginx)
-        working-directory: terraform
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-        run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm repo update
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            NS="cong-prod"
-          else
-            NS="team-cong"
-          fi
-          helm upgrade --install nginx bitnami/nginx \
-            --namespace=$NS \
-            --create-namespace \
-            --values=helm/nginx-values.yaml
+#       - name: 📦 Helm Chart deployen (nginx)
+#         working-directory: terraform
+#         env:
+#           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+#         run: |
+#           helm repo add bitnami https://charts.bitnami.com/bitnami
+#           helm repo update
+#           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+#             NS="cong-prod"
+#           else
+#             NS="team-cong"
+#           fi
+#           helm upgrade --install nginx bitnami/nginx \
+#             --namespace=$NS \
+#             --create-namespace \
+#             --values=helm/nginx-values.yaml
 
-      - name: Prüfe Helm Release + Ressourcen
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            NS="cong-prod"
-          else
-            NS="team-cong"
-          fi
-          helm list -n $NS
-          kubectl get all -n $NS
-        env:
-          KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
+#       - name: Prüfe Helm Release + Ressourcen
+#         run: |
+#           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+#             NS="cong-prod"
+#           else
+#             NS="team-cong"
+#           fi
+#           helm list -n $NS
+#           kubectl get all -n $NS
+#         env:
+#           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
 
