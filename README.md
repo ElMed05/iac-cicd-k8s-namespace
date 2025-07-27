@@ -99,3 +99,7 @@ flowchart TD
 - Unit-Tests
 - Rollout von Kubernetes Deployments
 - Helm-Charts / ArgoCD / Tekton
+
+## CI/CD-Pipeline für IaC (Terraform + GitHub Actions)
+
+![Deploy Status](https://github.com/ElMed05/iac-cicd-k8s-namespace/actions/workflows/deploy.yml/badge.svg)
