@@ -144,15 +144,20 @@ jobs:
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             TFVARS="environments/production.tfvars"
+            NS="cong-prod"
+            RELEASE="nginx-prod"
           else
             TFVARS="environments/staging.tfvars"
+            NS="team-cong"
+            RELEASE="nginx-staging"
           fi
 
           terraform state show kubernetes_namespace.this >/dev/null 2>&1 || \
-          terraform import -var-file=$TFVARS kubernetes_namespace.this $(terraform console -var-file=$TFVARS <<< "var.namespace" | tr -d '"')
+            terraform import -var-file=$TFVARS kubernetes_namespace.this $NS || true
 
           terraform state show helm_release.nginx >/dev/null 2>&1 || \
-          terraform import -var-file=$TFVARS helm_release.nginx $(terraform console -var-file=$TFVARS <<< "var.nginx_release_name" | tr -d '"')
+            terraform import -var-file=$TFVARS helm_release.nginx "$NS/$RELEASE" || true
+
 
       - name: Terraform Apply
         working-directory: terraform
