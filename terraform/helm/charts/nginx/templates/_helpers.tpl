@@ -1,123 +1,48 @@
 {{/*
-Copyright Broadcom, Inc. All Rights Reserved.
-SPDX-License-Identifier: APACHE-2.0
+Expand the name of the chart.
 */}}
-
-{{/* vim: set filetype=mustache: */}}
-{{/*
-Return the proper NGINX image name
-*/}}
-{{- define "nginx.image" -}}
-{{ include "common.images.image" (dict "imageRoot" .Values.image "global" .Values.global) }}
-{{- end -}}
-
-{{/*
-Return the proper GIT image name
-*/}}
-{{- define "nginx.cloneStaticSiteFromGit.image" -}}
-{{ include "common.images.image" (dict "imageRoot" .Values.cloneStaticSiteFromGit.image "global" .Values.global) }}
-{{- end -}}
-
-{{/*
-Return the proper Prometheus metrics image name
-*/}}
-{{- define "nginx.metrics.image" -}}
-{{ include "common.images.image" (dict "imageRoot" .Values.metrics.image "global" .Values.global) }}
-{{- end -}}
-
-{{/*
-Return the proper Docker Image Registry Secret Names
-*/}}
-{{- define "nginx.imagePullSecrets" -}}
-{{ include "common.images.renderPullSecrets" (dict "images" (list .Values.image .Values.cloneStaticSiteFromGit.image .Values.metrics.image) "context" $) }}
-{{- end -}}
-
-{{/*
-Return true if a static site should be mounted in the NGINX container
-*/}}
-{{- define "nginx.useStaticSite" -}}
-{{- if or .Values.cloneStaticSiteFromGit.enabled .Values.staticSiteConfigmap .Values.staticSitePVC }}
-    {- true -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
-Return the volume to use to mount the static site in the NGINX container
-*/}}
-{{- define "nginx.staticSiteVolume" -}}
-{{- if .Values.cloneStaticSiteFromGit.enabled }}
-emptyDir: {}
-{{- else if .Values.staticSiteConfigmap }}
-configMap:
-  name: {{ printf "%s" (tpl .Values.staticSiteConfigmap $) -}}
-{{- else if .Values.staticSitePVC }}
-persistentVolumeClaim:
-  claimName: {{ printf "%s" (tpl .Values.staticSitePVC $) -}}
+{{- define "nginx.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end }}
-{{- end -}}
 
 {{/*
-Return the custom NGINX server block configmap.
+Create a default fullname.
 */}}
-{{- define "nginx.serverBlockConfigmapName" -}}
-{{- if .Values.existingServerBlockConfigmap -}}
-    {{- printf "%s" (tpl .Values.existingServerBlockConfigmap $) -}}
+{{- define "nginx.fullname" -}}
+{{- if .Values.fullnameOverride -}}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
-    {{- printf "%s-server-block" (include "common.names.fullname" .) -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
-{{- end -}}
+{{- end }}
 
 {{/*
-Return the custom NGINX stream server block configmap.
+Common labels
 */}}
-{{- define "nginx.streamServerBlockConfigmapName" -}}
-{{- if .Values.existingStreamServerBlockConfigmap -}}
-    {{- printf "%s" (tpl .Values.existingStreamServerBlockConfigmap $) -}}
-{{- else -}}
-    {{- printf "%s-stream-server-block" (include "common.names.fullname" .) -}}
-{{- end -}}
-{{- end -}}
+{{- define "nginx.labels" -}}
+helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+app.kubernetes.io/name: {{ include "nginx.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/version: {{ .Chart.AppVersion }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
 
 {{/*
-Compile all warnings into a single message, and call fail.
+Selector labels
 */}}
-{{- define "nginx.validateValues" -}}
-{{- $messages := list -}}
-{{- $messages := append $messages (include "nginx.validateValues.cloneStaticSiteFromGit" .) -}}
-{{- $messages := append $messages (include "nginx.validateValues.extraVolumes" .) -}}
-{{- $messages := without $messages "" -}}
-{{- $message := join "\n" $messages -}}
-
-{{- if $message -}}
-{{-   printf "\nVALUES VALIDATION:\n%s" $message | fail -}}
-{{- end -}}
-{{- end -}}
-
-{{/* Validate values of NGINX - Clone StaticSite from Git configuration */}}
-{{- define "nginx.validateValues.cloneStaticSiteFromGit" -}}
-{{- if and .Values.cloneStaticSiteFromGit.enabled (or (not .Values.cloneStaticSiteFromGit.repository) (not .Values.cloneStaticSiteFromGit.branch)) -}}
-nginx: cloneStaticSiteFromGit
-    When enabling cloing a static site from a Git repository, both the Git repository and the Git branch must be provided.
-    Please provide them by setting the `cloneStaticSiteFromGit.repository` and `cloneStaticSiteFromGit.branch` parameters.
-{{- end -}}
-{{- end -}}
-
-{{/* Validate values of NGINX - Incorrect extra volume settings */}}
-{{- define "nginx.validateValues.extraVolumes" -}}
-{{- if and (.Values.extraVolumes) (not (or .Values.extraVolumeMounts .Values.cloneStaticSiteFromGit.extraVolumeMounts)) -}}
-nginx: missing-extra-volume-mounts
-    You specified extra volumes but not mount points for them. Please set
-    the extraVolumeMounts value
-{{- end -}}
-{{- end -}}
+{{- define "nginx.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "nginx.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
 
 {{/*
- Create the name of the service account to use
- */}}
+Create the service account name
+*/}}
 {{- define "nginx.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
-    {{ default (include "common.names.fullname" .) .Values.serviceAccount.name }}
+{{ default (include "nginx.fullname" .) .Values.serviceAccount.name }}
 {{- else -}}
-    {{ default "default" .Values.serviceAccount.name }}
+{{ default "default" .Values.serviceAccount.name }}
 {{- end -}}
-{{- end -}}
+{{- end }}
