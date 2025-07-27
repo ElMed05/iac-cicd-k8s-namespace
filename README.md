@@ -5,7 +5,7 @@ Dieses Projekt implementiert Infrastructure-as-Code (IaC) mit GitHub Actions, Te
 
 ---
 
-## 🔧 Tech Stack
+##  Tech Stack
 
 - **Terraform** – Infrastruktur als Code
 - **GitHub Actions** – Automatisierte CI/CD Workflows
@@ -15,14 +15,14 @@ Dieses Projekt implementiert Infrastructure-as-Code (IaC) mit GitHub Actions, Te
 - **GitHub Secrets** – Speicherung der Base64-kodierten Kubeconfig
 
 ---
-## 📁 GitHub Branch-Strategie
+##  GitHub Branch-Strategie 
 
 - **main für Produktion:** Führt zu Terraform Apply auf Namespace in PROD.
 - **staging für Entwicklung**  löst Sicherheits- und Syntaxprüfungen + Terraform Plan aus.
 - **workflow_dispatch**  Manueller Trigger mit Umgebungswahl (z.B staging, production)
 
 ---
-## 📁 Projektstruktur
+##  Projektstruktur
 
 ```bash
 terraform/
@@ -43,23 +43,23 @@ terraform/
 ```mermaid
 
 flowchart TD
-    A[Push nach staging oder main\noder manuell via workflow_dispatch] --> B[🧰 Setup\n- Tools installieren\n- kubeconfig aus Secret\n- Umgebung bestimmen]
+    A[Push nach staging oder main\noder manuell via workflow_dispatch] --> B[ Setup\n- Tools installieren\n- kubeconfig aus Secret\n- Umgebung bestimmen]
     
 
-    B --> C[🔐 Checkov\nSicherheitsprüfung]
-    B --> D[🧹 TFLint\nSyntax-/Styleprüfung]
-    B --> E[✅ Validate\n- tfvars generieren\n- terraform init\n- terraform validate]
+    B --> C[ Checkov\nSicherheitsprüfung]
+    B --> D[ TFLint\nSyntax-/Styleprüfung]
+    B --> E[ Validate\n- tfvars generieren\n- terraform init\n- terraform validate]
 
-    E --> F[📐 Plan\n- terraform plan mit tfvars]
+    E --> F[ Plan\n- terraform plan mit tfvars]
 
     F --> G{Branch == main oder staging?}
 
-    G -- main --> H[🧩 Namespace-Import via terraform]
-    H --> I[🚀 Apply auf production Umgebung]
-    I --> K[🔍 Smoke Test\nLabel-Check via kubectl]
+    G -- main --> H[ Namespace-Import via terraform]
+    H --> I[ Apply auf production Umgebung]
+    I --> K[ Smoke Test\nLabel-Check via kubectl]
 
-    G -- staging --> J[ 🧩 Namespace-Import via terraform]
-    J --> R[🚀 Apply auf Dev Umgebung]
+    G -- staging --> J[  Namespace-Import via terraform]
+    J --> R[ Apply auf Dev Umgebung]
 
     R --> L[🔍 Smoke Test\nLabel-Check via kubectl]
 
