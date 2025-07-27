@@ -168,7 +168,6 @@ jobs:
             -var="nginx_values_file=helm/nginx-values.yaml" \
             helm_release.nginx $RELEASE || true
 
-
       - name: Terraform Apply
         working-directory: terraform
         env:
@@ -190,23 +189,21 @@ jobs:
           }
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-  
 
       - name: 📦 Helm Chart deployen (nginx)
         working-directory: terraform
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm repo update
-
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             NS="cong-prod"
+            RELEASE="nginx-prod"
           else
             NS="team-cong"
+            RELEASE="nginx-staging"
           fi
 
-          helm upgrade --install nginx bitnami/nginx \
+          helm upgrade --install $RELEASE bitnami/nginx \
             --namespace=$NS \
             --create-namespace \
             --values=helm/nginx-values.yaml
@@ -233,5 +230,3 @@ jobs:
           kubectl get all -n $NS
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
-
-
