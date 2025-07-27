@@ -116,7 +116,7 @@ jobs:
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
-          terraform plan -var-file=terraform/environments/${{ needs.setup.outputs.environment }}.tfvars
+          terraform plan -var-file=environments/${{ needs.setup.outputs.environment }}.tfvars
 
   apply:
     name: Terraform Apply + Helm Deploy
