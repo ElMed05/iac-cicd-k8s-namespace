@@ -6,14 +6,27 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "~> 2.30"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.13"
+    }
   }
 }
 
-
 provider "kubernetes" {
-  config_path = "${path.module}/.kubeconfig"
-  config_context = "minikube" 
+  config_path    = "${path.module}/.kubeconfig"
+  config_context = "minikube"
 }
 
+provider "helm" {
+  kubernetes {
+    config_path    = "${path.module}/.kubeconfig"
+    config_context = "minikube"
+  }
+
+  registry_config_path   = "${path.module}/.helm/registry.json"
+  repository_config_path = "${path.module}/.helm/repositories.yaml"
+  repository_cache       = "${path.module}/.helm/cache"
+}
 
 
