@@ -2,7 +2,7 @@ resource "helm_release" "nginx" {
   name       = var.nginx_release_name
   repository = "https://charts.bitnami.com/bitnami"
   chart      = "nginx"
-  version    = "19.0.3"
+  
   namespace  = var.namespace
 
   values = [
