@@ -143,20 +143,32 @@ jobs:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            TFVARS="environments/production.tfvars"
             NS="cong-prod"
+            ENV="production"
             RELEASE="nginx-prod"
           else
-            TFVARS="environments/staging.tfvars"
             NS="team-cong"
+            ENV="staging"
             RELEASE="nginx-staging"
           fi
 
+          echo "🔍 Prüfe, ob Namespace $NS im Terraform-State vorhanden ist..."
           terraform state show kubernetes_namespace.this >/dev/null 2>&1 || \
-            terraform import -var-file=$TFVARS kubernetes_namespace.this $NS || true
+            terraform import \
+              -var="namespace=$NS" \
+              -var="environment=$ENV" \
+              -var="nginx_release_name=$RELEASE" \
+              -var="nginx_values_file=helm/nginx-values.yaml" \
+              kubernetes_namespace.this $NS || true
 
+          echo "🔍 Prüfe, ob Helm Release $RELEASE im Terraform-State vorhanden ist..."
           terraform state show helm_release.nginx >/dev/null 2>&1 || \
-            terraform import -var-file=$TFVARS helm_release.nginx "$NS/$RELEASE" || true
+            terraform import \
+              -var="namespace=$NS" \
+              -var="environment=$ENV" \
+              -var="nginx_release_name=$RELEASE" \
+              -var="nginx_values_file=helm/nginx-values.yaml" \
+              helm_release.nginx "$NS/$RELEASE" || true
 
 
       - name: Terraform Apply
