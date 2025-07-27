@@ -156,7 +156,7 @@ jobs:
           terraform import \
             -var="namespace=$NS" \
             -var="environment=$ENV" \
-            -var="nginx_release_name=$RELEASE" \
+            
             -var="nginx_values_file=helm/nginx-values.yaml" \
             kubernetes_namespace.this $NS || true
 
@@ -164,7 +164,7 @@ jobs:
           terraform import \
             -var="namespace=$NS" \
             -var="environment=$ENV" \
-            -var="nginx_release_name=$RELEASE" \
+            
             -var="nginx_values_file=helm/nginx-values.yaml" \
             helm_release.nginx $RELEASE || true
 
