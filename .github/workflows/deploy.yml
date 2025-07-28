@@ -2,7 +2,9 @@ name: Deploy Kubernetes Namespace via Terraform + Helm
 
 on:
   push:
-    branches: [main, staging]
+    branches: [staging]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
