@@ -90,13 +90,13 @@ flowchart TD
 - .kubeconfig wird Base64-kodiert über GitHub Secret bereitgestellt
 - Wenn Namespace bereits existiert, wird er automatisch importiert (terraform import)
 - Bei staging erfolgt  Apply, nur auf Dev umgebung
-- tfvars-Dateien werden dynamisch generiert
+
 
 ## Optional erweiterbar um
 
 - Unit-Tests
-- Rollout von Kubernetes Deployments
 - Helm-Charts / ArgoCD / Tekton
+- .......
 
 ## CI/CD-Pipeline für IaC (Terraform + GitHub Actions)
 
