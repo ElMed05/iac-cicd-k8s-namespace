@@ -1,11 +1,8 @@
 name: Deploy Kubernetes Namespace via Terraform + Helm
-##
 on:
   push:
-    branches: [staging]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+    branches: [main, staging]
+    workflow_dispatch:
     inputs:
       environment:
         description: 'Zielumgebung (staging oder production)'
@@ -125,8 +122,7 @@ jobs:
     needs: plan
     if: |
       github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/staging' ||
-      (github.event_name == 'pull_request' && github.base_ref == 'main')
+      github.ref == 'refs/heads/staging' 
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     steps:
