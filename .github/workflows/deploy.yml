@@ -123,7 +123,11 @@ jobs:
     name: Terraform Apply + Helm Deploy
     runs-on: self-hosted
     needs: plan
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+    if: |
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/staging' ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main')
+
     steps:
       - uses: actions/checkout@v4
 
