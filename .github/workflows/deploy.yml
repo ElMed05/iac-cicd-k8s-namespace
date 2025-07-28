@@ -1,4 +1,3 @@
-# deploy.yml
 name: Deploy Kubernetes Namespace via Terraform + Helm
 
 on:
@@ -24,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 🔧 Tools installieren
+      - name:  Tools installieren
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip curl jq python3 python3-pip
@@ -194,7 +193,7 @@ jobs:
           else
             NS="team-cong"
           fi
-          kubectl rollout restart deployment -n $NS || echo "⚠️ Kein Deployment gefunden – kein Rollout notwendig"
+          kubectl rollout restart deployment -n $NS || echo " Kein Deployment gefunden – kein Rollout notwendig"
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
 
