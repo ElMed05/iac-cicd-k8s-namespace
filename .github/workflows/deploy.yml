@@ -152,15 +152,25 @@ jobs:
         env:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            NS="cong-prod"
-            ENV="production"
-            RELEASE="nginx-prod"
-          else
-            NS="team-cong"
-            ENV="staging"
-            RELEASE="nginx-staging"
-          fi
+          set -e
+
+          # Branch-basierte Zuweisung
+          case "${{ github.ref_name }}" in
+            main)
+              NS="cong-prod"
+              ENV="production"
+              RELEASE="nginx-prod"
+              ;;
+            *)
+              NS="team-cong"
+              ENV="staging"
+              RELEASE="nginx-staging"
+              ;;
+          esac
+
+          echo "Namespace: $NS"
+          echo "Umgebung: $ENV"
+          echo "Release: $RELEASE"
 
           terraform state show kubernetes_namespace.this >/dev/null 2>&1 || \
             terraform import \
