@@ -51,7 +51,7 @@ jobs:
           chmod 600 terraform/.kubeconfig
       - name: Run Checkov
         run: |
-          pipx install  checkov
+          pip install --user checkov
           ~/.local/bin/checkov -d terraform/
 
   lint:
