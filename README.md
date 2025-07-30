@@ -90,7 +90,7 @@ flowchart TD
 - .kubeconfig wird Base64-kodiert über GitHub Secret bereitgestellt
 - Wenn Namespace bereits existiert, wird er automatisch importiert (terraform import)
 - Bei staging erfolgt  Apply, nur auf Dev umgebung
-
+- terraform apply mit passender tfvars-Datei
 
 ## Optional erweiterbar um
 
