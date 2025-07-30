@@ -7,7 +7,7 @@ on:
       environment:
         description: 'Zielumgebung (staging oder production)'
         required: true
-        default: 'staging'
+        #default: 'staging'
 
 env:
   TF_VERSION: '1.8.2'
@@ -153,8 +153,7 @@ jobs:
           KUBECONFIG: "${{ github.workspace }}/terraform/.kubeconfig"
         run: |
           set -e
-
-          # Branch-basierte Zuweisung
+          ### Branch-basierte Zuweisung
           case "${{ github.ref_name }}" in
             main)
               NS="cong-prod"
